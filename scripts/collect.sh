@@ -41,7 +41,13 @@ for user in $(cut -f1 -d: /etc/passwd); do
 done
 
 echo "Collecting firewall rules..."
-ufw status numbered > "$OUTDIR/ufw-status.txt" 2>/dev/null || true
+if command -v ufw &> /dev/null; then
+  if ! ufw status numbered > "$OUTDIR/ufw-status.txt" 2>&1; then
+    echo "ufw status failed or needs root privileges" > "$OUTDIR/ufw-status.txt"
+  fi
+else
+  echo "ufw not installed or disabled" > "$OUTDIR/ufw-status.txt"
+fi
 iptables-save > "$OUTDIR/iptables-save.txt" 2>/dev/null || true
 nft list ruleset > "$OUTDIR/nft-ruleset.txt" 2>/dev/null || true
 
