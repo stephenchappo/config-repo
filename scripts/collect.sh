@@ -59,6 +59,8 @@ echo "Collecting Docker runtime snapshots..."
 docker images > "$OUTDIR/docker-images.txt" 2>/dev/null || true
 docker volume ls > "$OUTDIR/docker-volumes.txt" 2>/dev/null || true
 docker network ls > "$OUTDIR/docker-networks.txt" 2>/dev/null || true
-docker ps -a > "$OUTDIR/docker-containers.txt" 2>/dev/null || true
+  docker ps -a > "$OUTDIR/docker-containers.txt" 2>/dev/null || true
+  echo "Collecting musical preferences..."
+  python3 "$(dirname "$0")/../musical tastes/scripts/get_current_musical_preferences.py" > "$OUTDIR/musical_preferences.txt" 2>/dev/null || true
 
 echo "System snapshot complete: $OUTDIR"
