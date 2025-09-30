@@ -5,6 +5,8 @@ on:
     branches:
       - main
   pull_request:
+  schedule:
+    - cron: "0 3 * * 1"
 
 jobs:
   gitleaks:
@@ -13,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Install pre-commit
         uses: pre-commit/action@v4.3.0
@@ -20,6 +24,9 @@ jobs:
           extra_args: install
 
       - name: Run gitleaks
-        uses: zricethezav/gitleaks-action@v1
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
         with:
-          args: --verbose --exit-code=1
+          additional_args: "--redact --verbose"

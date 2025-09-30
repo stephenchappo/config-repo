@@ -1,0 +1,16 @@
+# config-repo gitleaks configuration
+title = "config-repo gitleaks"
+
+[allowlist]
+description = "Allow known placeholders while still catching real secrets"
+regexes = [
+  '(?i)(REDACTED|CHANGEME|PLACEHOLDER)',
+  '(?i)(YOUR|EXAMPLE)[-_ ]?(TOKEN|KEY|SECRET|PASSWORD)',
+  '\\${[A-Z0-9_]+}',      # env var placeholders
+  '<[A-Z0-9_\\-]+>',      # angle-bracket placeholders
+  'x{4,}(-?x{4,})+'       # xxxx-xxxx scrubbed tokens
+]
+files = [
+  '(?i).*\\.env\\.example$',
+  '(?i).*\\.template$'
+]

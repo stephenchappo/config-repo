@@ -44,12 +44,10 @@ config-repo/
 
 ## Next Steps
 
-1. **Sanitize service configs** under `containers/docker/configs-templates/`.  
-2. **Integrate CI**:
-   - Add `.pre-commit-config.yaml` with gitleaks hook.
-   - Create `.github/workflows/gitleaks.yml`.
-3. **Populate templates** for Ansible, Terraform, Prometheus, etc., as needed.
-4. Use `scripts/collect.sh` and commit snapshots regularly.
-5. For any secrets: maintain templates only, encrypt with SOPS/age, or store outside this repo.
+- [x] Sanitize service configs under `containers/docker/configs-templates/`.  
+- [x] Integrate CI (pre-commit & GitHub workflows).  
+- [x] Populate templates for Ansible, Terraform, Prometheus, etc.  
+- [ ] Use `scripts/collect.sh` and commit snapshots regularly.  
+- [ ] For any secrets: maintain templates only, encrypt with SOPS/age, or store outside this repo.
 
 > Keep this repository as your single source of truth for configuration and DR procedures.

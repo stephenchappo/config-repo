@@ -40,6 +40,14 @@ This document helps you keep your Docker configs in sync and up to date. Use the
    docker ps -a > containers/docker/runtime-snapshots/containers.txt
    ```
 
+7. **Sanitize service configs**  
+```bash
+containers/docker/scripts/sanitize-configs.sh \
+  --service <service> \
+  --src /srv/docker/<service>/config \
+  --out containers/docker/configs-templates/<service>
+```
+
 ## Prompts Library
 
 Toggle to Act mode and run these prompts in Cline:
