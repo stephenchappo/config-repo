@@ -1,0 +1,5 @@
+Extensions installed on SSH: trillian:
+github.copilot
+github.copilot-chat
+ms-azuretools.vscode-containers
+saoudrizwan.claude-dev

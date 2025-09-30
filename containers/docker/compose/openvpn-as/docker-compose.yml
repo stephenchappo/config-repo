@@ -1,0 +1,21 @@
+services:
+  openvpn-as:
+    image: openvpn/openvpn-as
+    container_name: openvpn-as
+    ports:
+      - "943:943"
+      - "1194:1194/udp"
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./config:/config
+    restart: unless-stopped
+    environment:
+      - PGID=1000
+      - PUID=1000
+      - TZ=America/Los_Angeles
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"

@@ -1,0 +1,12 @@
+services:
+  chrome-headless:
+    image: chromedp/headless-shell
+    container_name: chrome-headless
+    ports:
+      - "9222:9222"
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"

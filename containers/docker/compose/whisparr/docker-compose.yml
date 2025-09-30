@@ -1,0 +1,26 @@
+services:
+  whisparr:
+    build:
+      context: .
+    image: whisparr:latest
+    container_name: whisparr
+    user: root
+    environment:
+      - TZ=America/Los_Angeles
+      - UMASK=022
+      - PUID=1000 # User ID for the container process
+      - PGID=1000 # Group ID for the container process
+      - UMASK=002 # Optional: Umask for file permissions
+      - ASPNETCORE_URLS=http://0.0.0.0:6767
+
+    volumes:
+      - ./config:/config
+      - /marvin/Videos/Porn/Flat:/movies
+    ports:
+      - "6969:6767"
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"

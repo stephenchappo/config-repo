@@ -1,0 +1,25 @@
+name: Gitleaks Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  gitleaks:
+    name: Run gitleaks pre-commit scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install pre-commit
+        uses: pre-commit/action@v4.3.0
+        with:
+          extra_args: install
+
+      - name: Run gitleaks
+        uses: zricethezav/gitleaks-action@v1
+        with:
+          args: --verbose --exit-code=1

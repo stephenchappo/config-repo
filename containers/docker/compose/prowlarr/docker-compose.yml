@@ -1,0 +1,27 @@
+services:
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    user: root
+    environment:
+      - TZ=America/Los_Angeles
+      - UMASK=022
+      - PUID=1000 # User ID for the container process
+      - PGID=1000 # Group ID for the container process
+      - UMASK=002 # Optional: Umask for file permissions
+      - ASPNETCORE_URLS=http://0.0.0.0:9696
+    # environment:
+    #   - PUID=1000
+    #   - PGID=1000
+    #   - TZ=America/Los_Angeles
+    #   - ASPNETCORE_URLS=http://0.0.0.0:9696
+    volumes:
+      - ./config:/config
+    ports:
+      - "9696:9696"
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"

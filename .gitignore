@@ -1,0 +1,60 @@
+# Environment files and secrets
+**/.env
+**/*.env.local
+**/env-templates/*.env
+
+# Sensitive keys and certificates
+**/keys/**
+**/secrets/**
+**/*.key
+**/*.pem
+**/*.p12
+**/*.crt
+
+# Databases, logs, media, caches
+**/config/**/*.db*
+**/config/**/db/**
+**/config/**/Backups/**
+**/config/**/logs*
+**/cache/**
+**/data/**
+**/generated/**
+**/metadata/**
+**/MediaCover/**
+
+# VPN private configs
+containers/docker/compose/openvpn-as/config/**
+
+# ACME and certbot
+**/acme.json
+
+# Terraform local state
+terraform.tfstate*
+.terraform/
+
+# Docker context snapshots
+containers/docker/runtime-snapshots/
+
+# Editor temp files and caches
+**/.vscode/**/workspaceStorage/**
+**/*.code-workspace
+
+# Node.js
+node_modules/
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# Linux trash
+.Trash-*/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Backup files
+*~
+*.bak

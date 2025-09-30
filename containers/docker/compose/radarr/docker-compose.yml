@@ -1,0 +1,22 @@
+services:
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    user: ${DOCKER_USER}
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Los_Angeles
+      - ASPNETCORE_URLS=http://+:7878
+    volumes:
+      - ./config:/config
+      - /marvin/Videos/Movies:/movies
+      - /marvin/ultraseedbox/downloads:/home/r0xyd0g/downloads/
+    ports:
+      - "7878:7878"
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"

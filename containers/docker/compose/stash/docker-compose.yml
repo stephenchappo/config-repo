@@ -1,0 +1,24 @@
+services:
+  stash:
+    image: stashapp/stash:latest
+    container_name: stash
+    restart: unless-stopped
+    ports:
+      - "9998:9998"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "10"
+        max-size: "2m"
+    environment:
+      - STASH_STASH=/data/
+      - STASH_GENERATED=/generated/
+      - STASH_METADATA=/metadata/
+      - STASH_CACHE=/cache/
+      - STASH_PORT=9998
+    volumes:
+      - ./config:/root/.stash
+      - /marvin/Videos/Porn:/data
+      - ./metadata:/metadata
+      - ./cache:/cache
+      - ./generated:/generated
