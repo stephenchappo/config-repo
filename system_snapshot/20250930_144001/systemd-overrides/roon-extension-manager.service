@@ -1,0 +1,14 @@
+[Unit]
+Description=Roon Extension Manager
+Requires=docker.service
+After=docker.service
+
+[Service]
+User=scon
+Restart=on-success
+ExecStart=/home/scon/.roon-extension-manager/roon-extension-manager.sh
+Environment="DOCKER_GID=136"
+Environment="TZ=America/Los_Angeles"
+
+[Install]
+WantedBy=multi-user.target
