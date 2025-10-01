@@ -1,66 +1,58 @@
 #!/usr/bin/env bash
-# collect.sh – snapshot key system and service configurations
-# Usage: bash scripts/collect.sh
+# collect.sh – snapshot system and musical preferences with logging and git upload
+# Usage: sudo bash scripts/collect.sh
 
 set -euo pipefail
 if [[ "$EUID" -ne 0 ]]; then
   echo "This script must be run as root" >&2
   exit 1
 fi
-OUTDIR="$(dirname "$0")/../system_snapshot/$(date +%Y%m%d_%H%M%S)"
-mkdir -p "$OUTDIR"
 
-echo "Collecting OS release..."
-cat /etc/os-release > "$OUTDIR/os-release.txt"
+BASEDIR="$(dirname "$0")/.."
+OUTDIR="$BASEDIR/system_snapshot/$(date +%Y%m%d_%H%M%S)"
+LOGDIR="$BASEDIR/logs"
+LOGFILE="$LOGDIR/collect.log"
+mkdir -p "$OUTDIR" "$LOGDIR"
 
-echo "Collecting APT sources and pins..."
-cp -a /etc/apt/sources.list* "$OUTDIR/" 2>/dev/null || true
-cp -a /etc/apt/preferences.d "$OUTDIR/" 2>/dev/null || true
+echo "[$(date)] Starting snapshot" | tee -a "$LOGFILE"
 
-echo "Collecting installed packages..."
-dpkg --get-selections > "$OUTDIR/dpkg-selections.txt"
-apt-mark showmanual > "$OUTDIR/apt-manual.txt"
-
-echo "Collecting snaps and flatpaks..."
-snap list > "$OUTDIR/snaps.txt" 2>/dev/null || true
-flatpak list --app > "$OUTDIR/flatpaks.txt" 2>/dev/null || true
-
-echo "Collecting kernel & sysctl..."
-cat /etc/sysctl.conf > "$OUTDIR/sysctl.conf" 2>/dev/null || true
-cp -a /etc/sysctl.d "$OUTDIR/" 2>/dev/null || true
-cp -a /etc/modules-load.d "$OUTDIR/" 2>/dev/null || true
-
-echo "Collecting time & locale..."
-timedatectl status > "$OUTDIR/timedatectl.txt"
-localectl status > "$OUTDIR/localectl.txt"
-
-echo "Collecting systemd unit files..."
-systemctl list-unit-files --state=enabled > "$OUTDIR/systemd-enabled-units.txt"
-cp -a /etc/systemd/system "$OUTDIR/systemd-overrides" 2>/dev/null || true
-
-echo "Collecting cron jobs..."
-crontab -l > "$OUTDIR/cron-root.txt" 2>/dev/null || true
-for user in $(cut -f1 -d: /etc/passwd); do
-  crontab -l -u "$user" > "$OUTDIR/cron-$user.txt" 2>/dev/null || true
-done
-
-echo "Collecting firewall rules..."
-if command -v ufw &> /dev/null; then
-  if ! ufw status numbered > "$OUTDIR/ufw-status.txt" 2>&1; then
-    echo "ufw status failed or needs root privileges" > "$OUTDIR/ufw-status.txt"
+# helper to run a command, capture failure, and warn if output file empty
+run_capture() {
+  local cmd="$1"
+  local dest="$2"
+  echo "[$(date)] Running: $cmd" | tee -a "$LOGFILE"
+  if ! eval "$cmd" 2>>"$LOGFILE"; then
+    echo "[$(date)] ERROR: command failed: $cmd" | tee -a "$LOGFILE"
   fi
+  if [[ -e "$dest" && ! -s "$dest" ]]; then
+    echo "[$(date)] WARNING: empty output: $dest" | tee -a "$LOGFILE"
+  fi
+}
+
+run_capture "cat /etc/os-release > \"$OUTDIR/os-release.txt\"" "$OUTDIR/os-release.txt"
+run_capture "dpkg --get-selections > \"$OUTDIR/dpkg-selections.txt\"" "$OUTDIR/dpkg-selections.txt"
+run_capture "apt-mark showmanual > \"$OUTDIR/apt-manual.txt\"" "$OUTDIR/apt-manual.txt"
+
+# firewall rules
+if command -v ufw &> /dev/null; then
+  run_capture "ufw status numbered > \"$OUTDIR/ufw-status.txt\"" "$OUTDIR/ufw-status.txt"
 else
-  echo "ufw not installed or disabled" > "$OUTDIR/ufw-status.txt"
+  echo "[$(date)] INFO: ufw not installed or disabled" | tee -a "$LOGFILE"
+  echo "ufw not installed" > "$OUTDIR/ufw-status.txt"
 fi
-iptables-save > "$OUTDIR/iptables-save.txt" 2>/dev/null || true
-nft list ruleset > "$OUTDIR/nft-ruleset.txt" 2>/dev/null || true
+run_capture "iptables-save > \"$OUTDIR/iptables-save.txt\"" "$OUTDIR/iptables-save.txt"
+run_capture "nft list ruleset > \"$OUTDIR/nft-ruleset.txt\"" "$OUTDIR/nft-ruleset.txt"
 
-echo "Collecting Docker runtime snapshots..."
-docker images > "$OUTDIR/docker-images.txt" 2>/dev/null || true
-docker volume ls > "$OUTDIR/docker-volumes.txt" 2>/dev/null || true
-docker network ls > "$OUTDIR/docker-networks.txt" 2>/dev/null || true
-  docker ps -a > "$OUTDIR/docker-containers.txt" 2>/dev/null || true
-  echo "Collecting musical preferences..."
-  python3 "$(dirname "$0")/../musical tastes/scripts/get_current_musical_preferences.py" > "$OUTDIR/musical_preferences.txt" 2>/dev/null || true
+# musical preferences
+run_capture "python3 \"$BASEDIR/musical tastes/scripts/get_current_musical_preferences.py\" > \"$OUTDIR/musical_preferences.txt\"" "$OUTDIR/musical_preferences.txt"
 
-echo "System snapshot complete: $OUTDIR"
+echo "[$(date)] Committing snapshot to git" | tee -a "$LOGFILE"
+pushd "$BASEDIR" > /dev/null
+git add system_snapshot logs scripts/collect.sh
+if ! git commit -m "Automated snapshot $(date +%Y-%m-%d_%H:%M)" >>"$LOGFILE" 2>&1; then
+  echo "[$(date)] INFO: nothing to commit" | tee -a "$LOGFILE"
+fi
+git push origin main >>"$LOGFILE" 2>&1 || echo "[$(date)] ERROR: git push failed" | tee -a "$LOGFILE"
+popd > /dev/null
+
+echo "[$(date)] Snapshot complete: $OUTDIR" | tee -a "$LOGFILE"

@@ -1,0 +1,7 @@
+               Local time: Tue 2025-09-30 14:50:16 PDT
+           Universal time: Tue 2025-09-30 21:50:16 UTC
+                 RTC time: Tue 2025-09-30 21:50:16
+                Time zone: America/Los_Angeles (PDT, -0700)
+System clock synchronized: yes
+              NTP service: active
+          RTC in local TZ: no

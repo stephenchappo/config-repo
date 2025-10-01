@@ -1,0 +1,15 @@
+NETWORK ID     NAME                      DRIVER    SCOPE
+8b7472fb7bcb   bridge                    bridge    local
+9fb33d91d884   chrome-headless_default   bridge    local
+28972ffaeabe   cloudflared_default       bridge    local
+8531fd6a39c8   docker_default            bridge    local
+4ccdc67425b2   homarr_default            bridge    local
+66c48c3238bc   host                      host      local
+f8479e84e797   none                      null      local
+055af5d5d809   openvpn-as_default        bridge    local
+8a9aa634319c   overseerr_default         bridge    local
+fbda18736a51   prowlarr_default          bridge    local
+e7f65c135d11   radarr_default            bridge    local
+863fa69503d2   sonarr_default            bridge    local
+8f0e90027077   stash_default             bridge    local
+c6dd52a344eb   whisparr_default          bridge    local

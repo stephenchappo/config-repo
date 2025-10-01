@@ -1,0 +1,12 @@
+Name                            Version                         Rev    Tracking         Publisher    Notes
+bare                            1.0                             5      latest/stable    canonical**  base
+core20                          20250730                        2669   latest/stable    canonical**  base
+core22                          20250822                        2133   latest/stable    canonical**  base
+firefox                         143.0.3-1                       6933   latest/stable/…  mozilla**    -
+gnome-3-38-2004                 0+git.efb213a                   143    latest/stable/…  canonical**  -
+gnome-42-2204                   0+git.837775c-sdk0+git.7b07595  226    latest/stable    canonical**  -
+gtk-common-themes               0.1-81-g442e511                 1535   latest/stable/…  canonical**  -
+hunspell-dictionaries-1-7-2004  1.7-20.04+pkg-6fd6              2      latest/stable    brlin        -
+snap-store                      41.3-72-g80e7130                1216   latest/stable/…  canonical**  -
+snapd                           2.71                            25202  latest/stable    canonical**  snapd
+snapd-desktop-integration       0.9                             315    latest/stable/…  canonical**  -

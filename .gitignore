@@ -44,6 +44,7 @@ node_modules/
 
 # Logs
 *.log
+scripts/logs/
 
 # macOS
 .DS_Store
