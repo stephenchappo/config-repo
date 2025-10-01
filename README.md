@@ -46,8 +46,10 @@ config-repo/
 
 - [x] Sanitize service configs under `containers/docker/configs-templates/`.  
 - [x] Integrate CI (pre-commit & GitHub workflows).  
-- [x] Populate templates for Ansible, Terraform, Prometheus, etc.  
-- [ ] Use `scripts/collect.sh` and commit snapshots regularly.  
+- [x] Populate templates for Ansible, Terraform, Prometheus, etc.
+- [ ] Create a script that scans all of the contents of the config repo, updates all of the relevant documentation including this README file, add it to a cron that runs 3x per week at 2:30am on Monday, Wednesday and Friday and then uploads all changes to git.
+- [X] Use `scripts/collect.sh` and commit snapshots regularly.
+- [ ] After the cron jobs have run once, verify they work and that everything has populated as we expect, no errors and no empty files.
 - [ ] For any secrets: maintain templates only, encrypt with SOPS/age, or store outside this repo.
 
 > Keep this repository as your single source of truth for configuration and DR procedures.

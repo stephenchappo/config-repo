@@ -9,6 +9,8 @@ if [[ "$EUID" -ne 0 ]]; then
 fi
 
 BASEDIR="$(dirname "$0")/.."
+source "$BASEDIR/../git.env"
+source "$BASEDIR/../spotify.env"
 OUTDIR="$BASEDIR/system_snapshot/$(date +%Y%m%d_%H%M%S)"
 LOGDIR="$BASEDIR/logs"
 LOGFILE="$LOGDIR/collect.log"
@@ -43,12 +45,21 @@ fi
 run_capture "iptables-save > \"$OUTDIR/iptables-save.txt\"" "$OUTDIR/iptables-save.txt"
 run_capture "nft list ruleset > \"$OUTDIR/nft-ruleset.txt\"" "$OUTDIR/nft-ruleset.txt"
 
+# Spotify environment and Python dependencies
+source "$BASEDIR/../spotify.env"
+export SNAPSHOT_OUTDIR="$OUTDIR"
+run_capture "apt-get update && apt-get install -y python3-pip" "/dev/null"
+run_capture "pip3 install spotipy pandas" "/dev/null"
+
 # musical preferences
-run_capture "python3 \"$BASEDIR/musical tastes/scripts/get_current_musical_preferences.py\" > \"$OUTDIR/musical_preferences.txt\"" "$OUTDIR/musical_preferences.txt"
+run_capture "apt-get update && apt-get install -y python3-pandas" "/dev/null"
+run_capture "python3 \"$BASEDIR/musical tastes/scripts/musical_preferences.py\" > \"$OUTDIR/musical_preferences.txt\"" "$OUTDIR/musical_preferences.txt"
 
 echo "[$(date)] Committing snapshot to git" | tee -a "$LOGFILE"
 pushd "$BASEDIR" > /dev/null
-git add system_snapshot logs scripts/collect.sh
+if [[ -n "${GITHUB_TOKEN-}" ]]; then
+  git remote set-url origin "https://${GITHUB_TOKEN}@github.com/scon/config-repo.git"
+fi
 if ! git commit -m "Automated snapshot $(date +%Y-%m-%d_%H:%M)" >>"$LOGFILE" 2>&1; then
   echo "[$(date)] INFO: nothing to commit" | tee -a "$LOGFILE"
 fi
