@@ -1,0 +1,29 @@
+Status: active
+
+     To                         Action      From
+     --                         ------      ----
+[ 1] OpenSSH                    ALLOW IN    Anywhere                  
+[ 2] 1194/udp                   ALLOW IN    Anywhere                   # docker-openvpn-as
+[ 3] 943/tcp                    ALLOW IN    Anywhere                   # docker-openvpn-as
+[ 4] 6969/tcp                   ALLOW IN    Anywhere                   # docker-whisparr2
+[ 5] 9222/tcp                   ALLOW IN    Anywhere                   # docker-chrome-headless
+[ 6] 9998/tcp                   ALLOW IN    Anywhere                   # docker-stash
+[ 7] 7878/tcp                   ALLOW IN    Anywhere                   # docker-radarr
+[ 8] 9696/tcp                   ALLOW IN    Anywhere                   # docker-prowlarr
+[ 9] 5055/tcp                   ALLOW IN    Anywhere                   # docker-overseerr
+[10] 8989/tcp                   ALLOW IN    Anywhere                   # docker-sonarr
+[11] 7575/tcp                   ALLOW IN    Anywhere                   # docker-homarr
+[12] 6767/tcp                   ALLOW IN    Anywhere                   # docker-whisparr
+[13] OpenSSH (v6)               ALLOW IN    Anywhere (v6)             
+[14] 1194/udp (v6)              ALLOW IN    Anywhere (v6)              # docker-openvpn-as
+[15] 943/tcp (v6)               ALLOW IN    Anywhere (v6)              # docker-openvpn-as
+[16] 9222/tcp (v6)              ALLOW IN    Anywhere (v6)              # docker-chrome-headless
+[17] 9998/tcp (v6)              ALLOW IN    Anywhere (v6)              # docker-stash
+[18] 7878/tcp (v6)              ALLOW IN    Anywhere (v6)              # docker-radarr
+[19] 9696/tcp (v6)              ALLOW IN    Anywhere (v6)              # docker-prowlarr
+[20] 5055/tcp (v6)              ALLOW IN    Anywhere (v6)              # docker-overseerr
+[21] 8989/tcp (v6)              ALLOW IN    Anywhere (v6)              # docker-sonarr
+[22] 7575/tcp (v6)              ALLOW IN    Anywhere (v6)              # docker-homarr
+[23] 6767/tcp (v6)              ALLOW IN    Anywhere (v6)              # docker-whisparr
+[24] 6969/tcp (v6)              ALLOW IN    Anywhere (v6)              # docker-whisparr2
+

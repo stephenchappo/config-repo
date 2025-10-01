@@ -1,0 +1,7 @@
+INFO: Using artist column 'Artist Name(s)'
+== Extracted Artists ==
+Artist 1
+Artist 2
+Artist 3
+✅ Wrote 3 artists to /root/config-repo/musical tastes/musical_tastes_full.csv
+✅ Wrote 3 artists to /root/config-repo/musical tastes/musical_tastes_digest.csv

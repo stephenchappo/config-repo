@@ -9,8 +9,8 @@ if [[ "$EUID" -ne 0 ]]; then
 fi
 
 BASEDIR="$(dirname "$0")/.."
-source "$BASEDIR/../git.env"
-source "$BASEDIR/../spotify.env"
+source "$BASEDIR/git.env"
+source "$BASEDIR/spotify.env"
 OUTDIR="$BASEDIR/system_snapshot/$(date +%Y%m%d_%H%M%S)"
 LOGDIR="$BASEDIR/logs"
 LOGFILE="$LOGDIR/collect.log"
@@ -46,7 +46,7 @@ run_capture "iptables-save > \"$OUTDIR/iptables-save.txt\"" "$OUTDIR/iptables-sa
 run_capture "nft list ruleset > \"$OUTDIR/nft-ruleset.txt\"" "$OUTDIR/nft-ruleset.txt"
 
 # Spotify environment and Python dependencies
-source "$BASEDIR/../spotify.env"
+source "$BASEDIR/spotify.env"
 export SNAPSHOT_OUTDIR="$OUTDIR"
 run_capture "apt-get update && apt-get install -y python3-pip" "/dev/null"
 run_capture "pip3 install spotipy pandas" "/dev/null"

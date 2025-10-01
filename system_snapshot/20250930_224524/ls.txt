@@ -1,0 +1,16 @@
+total 100
+drwxr-xr-x  5 root root  4096 Sep 30 22:45 .
+drwxrwxr-x 14 scon scon  4096 Sep 30 22:45 ..
+-rw-r--r--  1 root root    10 Sep 30 22:45 hostname.txt
+-rw-r--r--  1 root root   224 Sep 30 22:45 hosts.txt
+-rw-r--r--  1 root root  1984 Sep 30 22:45 interfaces.txt
+-rw-r--r--  1 root root 15414 Sep 30 22:45 iptables-save.txt
+-rw-r--r--  1 root root     0 Sep 30 22:45 ls.txt
+drwxr-xr-x  2 root root  4096 Sep 30 22:45 netplan
+drwxr-xr-x  2 root root  4096 Sep 30 22:45 networkmanager
+-rw-r--r--  1 root root 32898 Sep 30 22:45 nft-ruleset.txt
+-rw-r--r--  1 root root   128 Sep 30 22:45 README.txt
+-rw-r--r--  1 root root   809 Sep 30 22:45 resolv.conf.txt
+-rw-r--r--  1 root root  1218 Sep 30 22:45 routes.txt
+-rw-r--r--  1 root root  2223 Sep 30 22:45 ufw-status.txt
+drwxr-xr-x  2 root root  4096 Sep 30 22:45 vpn

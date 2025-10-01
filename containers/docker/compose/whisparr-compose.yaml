@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  whisparr:
+    image: ghcr.io/whisparr/whisparr:latest
+    container_name: whisparr
+    restart: unless-stopped
+    environment:
+      - PUID=1000        # replace with user id that should own files (host)
+      - PGID=1000        # replace with group id (host)
+      - TZ=America/Los_Angeles
+    ports:
+      - "5055:5055"      # Whisparr default port; change if you proxy/need different port
+    volumes:
+      - ./whisparr/config:/config
+      - ./whisparr/downloads:/downloads
+    networks:
+      - media
+
+networks:
+  media:
+    driver: bridge

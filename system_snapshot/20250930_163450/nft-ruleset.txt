@@ -1,0 +1,622 @@
+table ip filter {
+	chain ufw-before-logging-input {
+		ct state new limit rate 3/minute burst 10 packets counter packets 913 bytes 150684 log prefix "[UFW AUDIT] "
+	}
+
+	chain ufw-before-logging-output {
+		ct state new limit rate 3/minute burst 10 packets counter packets 913 bytes 96491 log prefix "[UFW AUDIT] "
+	}
+
+	chain ufw-before-logging-forward {
+		ct state new limit rate 3/minute burst 10 packets counter packets 0 bytes 0 log prefix "[UFW AUDIT] "
+	}
+
+	chain ufw-before-input {
+		iifname "lo" counter packets 422688 bytes 329900867 accept
+		ct state related,established counter packets 5451439 bytes 1656217346 accept
+		ct state invalid counter packets 0 bytes 0 jump ufw-logging-deny
+		ct state invalid counter packets 0 bytes 0 drop
+		meta l4proto icmp icmp type destination-unreachable counter packets 0 bytes 0 accept
+		meta l4proto icmp icmp type time-exceeded counter packets 0 bytes 0 accept
+		meta l4proto icmp icmp type parameter-problem counter packets 0 bytes 0 accept
+		meta l4proto icmp icmp type echo-request counter packets 0 bytes 0 accept
+		meta l4proto udp udp sport 67 udp dport 68 counter packets 0 bytes 0 accept
+		counter packets 440980 bytes 106037545 jump ufw-not-local
+		meta l4proto udp ip daddr 224.0.0.251 udp dport 5353 counter packets 38252 bytes 10784242 accept
+		meta l4proto udp ip daddr 239.255.255.250 udp dport 1900 counter packets 49469 bytes 10070903 accept
+		counter packets 353259 bytes 85182400 jump ufw-user-input
+	}
+
+	chain ufw-before-output {
+		oifname "lo" counter packets 422697 bytes 329901427 accept
+		ct state related,established counter packets 6073538 bytes 1639474851 accept
+		counter packets 226113 bytes 40170645 jump ufw-user-output
+	}
+
+	chain ufw-before-forward {
+		ct state related,established counter packets 0 bytes 0 accept
+		meta l4proto icmp icmp type destination-unreachable counter packets 0 bytes 0 accept
+		meta l4proto icmp icmp type time-exceeded counter packets 0 bytes 0 accept
+		meta l4proto icmp icmp type parameter-problem counter packets 0 bytes 0 accept
+		meta l4proto icmp icmp type echo-request counter packets 0 bytes 0 accept
+		counter packets 0 bytes 0 jump ufw-user-forward
+	}
+
+	chain ufw-after-input {
+		meta l4proto udp udp dport 137 counter packets 1803 bytes 146844 jump ufw-skip-to-policy-input
+		meta l4proto udp udp dport 138 counter packets 809 bytes 178997 jump ufw-skip-to-policy-input
+		meta l4proto tcp tcp dport 139 counter packets 0 bytes 0 jump ufw-skip-to-policy-input
+		meta l4proto tcp tcp dport 445 counter packets 0 bytes 0 jump ufw-skip-to-policy-input
+		meta l4proto udp udp dport 67 counter packets 197 bytes 66792 jump ufw-skip-to-policy-input
+		meta l4proto udp udp dport 68 counter packets 0 bytes 0 jump ufw-skip-to-policy-input
+		fib daddr type broadcast counter packets 157908 bytes 26601755 jump ufw-skip-to-policy-input
+	}
+
+	chain ufw-after-output {
+	}
+
+	chain ufw-after-forward {
+	}
+
+	chain ufw-after-logging-input {
+		limit rate 3/minute burst 10 packets counter packets 912 bytes 186657 log prefix "[UFW BLOCK] "
+	}
+
+	chain ufw-after-logging-output {
+		limit rate 3/minute burst 10 packets counter packets 912 bytes 79812 log prefix "[UFW ALLOW] "
+	}
+
+	chain ufw-after-logging-forward {
+		limit rate 3/minute burst 10 packets counter packets 0 bytes 0 log prefix "[UFW BLOCK] "
+	}
+
+	chain ufw-reject-input {
+	}
+
+	chain ufw-reject-output {
+	}
+
+	chain ufw-reject-forward {
+	}
+
+	chain ufw-track-input {
+	}
+
+	chain ufw-track-output {
+		meta l4proto tcp ct state new counter packets 4297 bytes 257964 accept
+		meta l4proto udp ct state new counter packets 221715 bytes 39908337 accept
+	}
+
+	chain ufw-track-forward {
+	}
+
+	chain INPUT {
+		type filter hook input priority filter; policy drop;
+		counter packets 6315187 bytes 2092161678 jump ufw-before-logging-input
+		counter packets 6315187 bytes 2092161678 jump ufw-before-input
+		counter packets 352730 bytes 85151839 jump ufw-after-input
+		counter packets 192013 bytes 58157451 jump ufw-after-logging-input
+		counter packets 192013 bytes 58157451 jump ufw-reject-input
+		counter packets 192013 bytes 58157451 jump ufw-track-input
+	}
+
+	chain OUTPUT {
+		type filter hook output priority filter; policy accept;
+		counter packets 6722428 bytes 2009552843 jump ufw-before-logging-output
+		counter packets 6722428 bytes 2009552843 jump ufw-before-output
+		counter packets 226193 bytes 40176565 jump ufw-after-output
+		counter packets 226193 bytes 40176565 jump ufw-after-logging-output
+		counter packets 226193 bytes 40176565 jump ufw-reject-output
+		counter packets 226193 bytes 40176565 jump ufw-track-output
+	}
+
+	chain FORWARD {
+		type filter hook forward priority filter; policy drop;
+		counter packets 76300 bytes 27955404 jump DOCKER-USER
+		counter packets 76300 bytes 27955404 jump DOCKER-ISOLATION-STAGE-1
+		oifname "docker0" ct state related,established counter packets 39 bytes 19551 accept
+		oifname "docker0" counter packets 0 bytes 0 jump DOCKER
+		iifname "docker0" oifname != "docker0" counter packets 42 bytes 3989 accept
+		iifname "docker0" oifname "docker0" counter packets 0 bytes 0 accept
+		oifname "br-055af5d5d809" ct state related,established counter packets 0 bytes 0 accept
+		oifname "br-055af5d5d809" counter packets 0 bytes 0 jump DOCKER
+		iifname "br-055af5d5d809" oifname != "br-055af5d5d809" counter packets 4 bytes 240 accept
+		iifname "br-055af5d5d809" oifname "br-055af5d5d809" counter packets 0 bytes 0 accept
+		oifname "br-c6dd52a344eb" ct state related,established counter packets 4784 bytes 1673193 accept
+		oifname "br-c6dd52a344eb" counter packets 61 bytes 3172 jump DOCKER
+		iifname "br-c6dd52a344eb" oifname != "br-c6dd52a344eb" counter packets 6244 bytes 1328509 accept
+		iifname "br-c6dd52a344eb" oifname "br-c6dd52a344eb" counter packets 0 bytes 0 accept
+		oifname "br-9fb33d91d884" ct state related,established counter packets 0 bytes 0 accept
+		oifname "br-9fb33d91d884" counter packets 0 bytes 0 jump DOCKER
+		iifname "br-9fb33d91d884" oifname != "br-9fb33d91d884" counter packets 0 bytes 0 accept
+		iifname "br-9fb33d91d884" oifname "br-9fb33d91d884" counter packets 0 bytes 0 accept
+		oifname "br-8f0e90027077" ct state related,established counter packets 36 bytes 14906 accept
+		oifname "br-8f0e90027077" counter packets 0 bytes 0 jump DOCKER
+		iifname "br-8f0e90027077" oifname != "br-8f0e90027077" counter packets 43 bytes 3527 accept
+		iifname "br-8f0e90027077" oifname "br-8f0e90027077" counter packets 0 bytes 0 accept
+		oifname "br-28972ffaeabe" ct state related,established counter packets 0 bytes 0 accept
+		oifname "br-28972ffaeabe" counter packets 0 bytes 0 jump DOCKER
+		iifname "br-28972ffaeabe" oifname != "br-28972ffaeabe" counter packets 0 bytes 0 accept
+		iifname "br-28972ffaeabe" oifname "br-28972ffaeabe" counter packets 0 bytes 0 accept
+		oifname "br-fbda18736a51" ct state related,established counter packets 2869 bytes 1734089 accept
+		oifname "br-fbda18736a51" counter packets 58 bytes 3016 jump DOCKER
+		iifname "br-fbda18736a51" oifname != "br-fbda18736a51" counter packets 3207 bytes 216561 accept
+		iifname "br-fbda18736a51" oifname "br-fbda18736a51" counter packets 0 bytes 0 accept
+		oifname "br-e7f65c135d11" ct state related,established counter packets 14933 bytes 7194451 accept
+		oifname "br-e7f65c135d11" counter packets 78 bytes 4056 jump DOCKER
+		iifname "br-e7f65c135d11" oifname != "br-e7f65c135d11" counter packets 17055 bytes 4740896 accept
+		iifname "br-e7f65c135d11" oifname "br-e7f65c135d11" counter packets 0 bytes 0 accept
+		oifname "br-8a9aa634319c" ct state related,established counter packets 0 bytes 0 accept
+		oifname "br-8a9aa634319c" counter packets 0 bytes 0 jump DOCKER
+		iifname "br-8a9aa634319c" oifname != "br-8a9aa634319c" counter packets 0 bytes 0 accept
+		iifname "br-8a9aa634319c" oifname "br-8a9aa634319c" counter packets 0 bytes 0 accept
+		oifname "br-863fa69503d2" ct state related,established counter packets 12478 bytes 6373273 accept
+		oifname "br-863fa69503d2" counter packets 54 bytes 2808 jump DOCKER
+		iifname "br-863fa69503d2" oifname != "br-863fa69503d2" counter packets 13359 bytes 2845747 accept
+		iifname "br-863fa69503d2" oifname "br-863fa69503d2" counter packets 0 bytes 0 accept
+		oifname "br-8531fd6a39c8" ct state related,established counter packets 0 bytes 0 accept
+		oifname "br-8531fd6a39c8" counter packets 0 bytes 0 jump DOCKER
+		iifname "br-8531fd6a39c8" oifname != "br-8531fd6a39c8" counter packets 0 bytes 0 accept
+		iifname "br-8531fd6a39c8" oifname "br-8531fd6a39c8" counter packets 0 bytes 0 accept
+		oifname "br-4ccdc67425b2" ct state related,established counter packets 551 bytes 1763742 accept
+		oifname "br-4ccdc67425b2" counter packets 0 bytes 0 jump DOCKER
+		iifname "br-4ccdc67425b2" oifname != "br-4ccdc67425b2" counter packets 405 bytes 29678 accept
+		iifname "br-4ccdc67425b2" oifname "br-4ccdc67425b2" counter packets 0 bytes 0 accept
+		counter packets 0 bytes 0 jump ufw-before-logging-forward
+		counter packets 0 bytes 0 jump ufw-before-forward
+		counter packets 0 bytes 0 jump ufw-after-forward
+		counter packets 0 bytes 0 jump ufw-after-logging-forward
+		counter packets 0 bytes 0 jump ufw-reject-forward
+		counter packets 0 bytes 0 jump ufw-track-forward
+	}
+
+	chain ufw-logging-deny {
+		ct state invalid limit rate 3/minute burst 10 packets counter packets 0 bytes 0 log prefix "[UFW AUDIT INVALID] "
+		limit rate 3/minute burst 10 packets counter packets 0 bytes 0 log prefix "[UFW BLOCK] "
+	}
+
+	chain ufw-logging-allow {
+		limit rate 3/minute burst 10 packets counter packets 0 bytes 0 log prefix "[UFW ALLOW] "
+	}
+
+	chain ufw-skip-to-policy-input {
+		counter packets 160717 bytes 26994388 drop
+	}
+
+	chain ufw-skip-to-policy-output {
+		counter packets 0 bytes 0 accept
+	}
+
+	chain ufw-skip-to-policy-forward {
+		counter packets 0 bytes 0 drop
+	}
+
+	chain ufw-not-local {
+		fib daddr type local counter packets 175859 bytes 52974093 return
+		fib daddr type multicast counter packets 104404 bytes 26069064 return
+		fib daddr type broadcast counter packets 160717 bytes 26994388 return
+		limit rate 3/minute burst 10 packets counter packets 0 bytes 0 jump ufw-logging-deny
+		counter packets 0 bytes 0 drop
+	}
+
+	chain ufw-user-input {
+		meta l4proto tcp tcp dport 22  counter packets 6 bytes 301 accept
+		meta l4proto udp udp dport 1194 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 943 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 6969 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 9222 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 9998 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 7878 counter packets 303 bytes 18180 accept
+		meta l4proto tcp tcp dport 9696 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 5055 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 8989 counter packets 300 bytes 18000 accept
+		meta l4proto tcp tcp dport 7575 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 6767 counter packets 0 bytes 0 accept
+	}
+
+	chain ufw-user-output {
+	}
+
+	chain ufw-user-forward {
+	}
+
+	chain ufw-user-logging-input {
+	}
+
+	chain ufw-user-logging-output {
+	}
+
+	chain ufw-user-logging-forward {
+	}
+
+	chain ufw-user-limit {
+		limit rate 3/minute counter packets 0 bytes 0 log prefix "[UFW LIMIT BLOCK] "
+		counter packets 0 bytes 0 reject
+	}
+
+	chain ufw-user-limit-accept {
+		counter packets 0 bytes 0 accept
+	}
+
+	chain DOCKER {
+		iifname != "br-9fb33d91d884" oifname "br-9fb33d91d884" meta l4proto tcp ip daddr 172.19.0.2 tcp dport 9222 counter packets 0 bytes 0 accept
+		iifname != "br-8f0e90027077" oifname "br-8f0e90027077" meta l4proto tcp ip daddr 172.20.0.2 tcp dport 9998 counter packets 0 bytes 0 accept
+		iifname != "br-fbda18736a51" oifname "br-fbda18736a51" meta l4proto tcp ip daddr 172.23.0.2 tcp dport 9696 counter packets 58 bytes 3016 accept
+		iifname != "br-055af5d5d809" oifname "br-055af5d5d809" meta l4proto tcp ip daddr 172.21.0.2 tcp dport 943 counter packets 0 bytes 0 accept
+		iifname != "br-4ccdc67425b2" oifname "br-4ccdc67425b2" meta l4proto tcp ip daddr 172.27.0.2 tcp dport 7575 counter packets 0 bytes 0 accept
+		iifname != "br-055af5d5d809" oifname "br-055af5d5d809" meta l4proto udp ip daddr 172.21.0.2 udp dport 1194 counter packets 0 bytes 0 accept
+		iifname != "br-8a9aa634319c" oifname "br-8a9aa634319c" meta l4proto tcp ip daddr 172.24.0.2 tcp dport 5055 counter packets 0 bytes 0 accept
+		iifname != "br-863fa69503d2" oifname "br-863fa69503d2" meta l4proto tcp ip daddr 172.25.0.2 tcp dport 8989 counter packets 54 bytes 2808 accept
+		iifname != "br-c6dd52a344eb" oifname "br-c6dd52a344eb" meta l4proto tcp ip daddr 172.28.0.2 tcp dport 6767 counter packets 61 bytes 3172 accept
+		iifname != "br-e7f65c135d11" oifname "br-e7f65c135d11" meta l4proto tcp ip daddr 172.22.0.2 tcp dport 7878 counter packets 78 bytes 4056 accept
+	}
+
+	chain DOCKER-ISOLATION-STAGE-1 {
+		iifname "docker0" oifname != "docker0" counter packets 42 bytes 3989 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-055af5d5d809" oifname != "br-055af5d5d809" counter packets 4 bytes 240 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-c6dd52a344eb" oifname != "br-c6dd52a344eb" counter packets 6244 bytes 1328509 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-9fb33d91d884" oifname != "br-9fb33d91d884" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-8f0e90027077" oifname != "br-8f0e90027077" counter packets 43 bytes 3527 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-28972ffaeabe" oifname != "br-28972ffaeabe" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-fbda18736a51" oifname != "br-fbda18736a51" counter packets 3207 bytes 216561 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-e7f65c135d11" oifname != "br-e7f65c135d11" counter packets 17055 bytes 4740896 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-8a9aa634319c" oifname != "br-8a9aa634319c" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-863fa69503d2" oifname != "br-863fa69503d2" counter packets 13359 bytes 2845747 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-8531fd6a39c8" oifname != "br-8531fd6a39c8" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-4ccdc67425b2" oifname != "br-4ccdc67425b2" counter packets 405 bytes 29678 jump DOCKER-ISOLATION-STAGE-2
+		counter packets 76300 bytes 27955404 return
+	}
+
+	chain DOCKER-ISOLATION-STAGE-2 {
+		oifname "docker0" counter packets 0 bytes 0 drop
+		oifname "br-055af5d5d809" counter packets 0 bytes 0 drop
+		oifname "br-c6dd52a344eb" counter packets 0 bytes 0 drop
+		oifname "br-9fb33d91d884" counter packets 0 bytes 0 drop
+		oifname "br-8f0e90027077" counter packets 0 bytes 0 drop
+		oifname "br-28972ffaeabe" counter packets 0 bytes 0 drop
+		oifname "br-fbda18736a51" counter packets 0 bytes 0 drop
+		oifname "br-e7f65c135d11" counter packets 0 bytes 0 drop
+		oifname "br-8a9aa634319c" counter packets 0 bytes 0 drop
+		oifname "br-863fa69503d2" counter packets 0 bytes 0 drop
+		oifname "br-8531fd6a39c8" counter packets 0 bytes 0 drop
+		oifname "br-4ccdc67425b2" counter packets 0 bytes 0 drop
+		counter packets 40359 bytes 9169147 return
+	}
+
+	chain DOCKER-USER {
+		counter packets 76300 bytes 27955404 return
+	}
+}
+table ip6 filter {
+	chain ufw6-before-logging-input {
+		ct state new limit rate 3/minute burst 10 packets counter packets 912 bytes 236128 log prefix "[UFW AUDIT] "
+	}
+
+	chain ufw6-before-logging-output {
+		ct state new limit rate 3/minute burst 10 packets counter packets 196 bytes 22361 log prefix "[UFW AUDIT] "
+	}
+
+	chain ufw6-before-logging-forward {
+		ct state new limit rate 3/minute burst 10 packets counter packets 0 bytes 0 log prefix "[UFW AUDIT] "
+	}
+
+	chain ufw6-before-input {
+		iifname "lo" counter packets 228 bytes 24788 accept
+		rt type 0 counter packets 0 bytes 0 drop
+		ct state related,established counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type echo-reply counter packets 0 bytes 0 accept
+		ct state invalid counter packets 0 bytes 0 jump ufw6-logging-deny
+		ct state invalid counter packets 0 bytes 0 drop
+		meta l4proto ipv6-icmp icmpv6 type destination-unreachable counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type packet-too-big counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type time-exceeded counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type parameter-problem counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type echo-request counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type nd-router-solicit ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type nd-router-advert ip6 hoplimit 255 counter packets 1527 bytes 158808 accept
+		meta l4proto ipv6-icmp icmpv6 type nd-neighbor-solicit ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type nd-neighbor-advert ip6 hoplimit 255 counter packets 9 bytes 648 accept
+		meta l4proto ipv6-icmp icmpv6 type  ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type  ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  counter packets 10 bytes 720 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  counter packets 23 bytes 1656 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type  ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type  ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  ip6 hoplimit 1 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  ip6 hoplimit 1 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  ip6 hoplimit 1 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type  counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type  counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type  counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type  counter packets 0 bytes 0 accept
+		meta l4proto udp ip6 saddr fe80::/10 ip6 daddr fe80::/10 udp sport 547 udp dport 546 counter packets 0 bytes 0 accept
+		meta l4proto udp ip6 daddr ff02::fb udp dport 5353 counter packets 25777 bytes 8166279 accept
+		meta l4proto udp ip6 daddr ff02::f udp dport 1900 counter packets 0 bytes 0 accept
+		counter packets 7 bytes 938 jump ufw6-user-input
+	}
+
+	chain ufw6-before-output {
+		oifname "lo" counter packets 228 bytes 24788 accept
+		rt type 0 counter packets 0 bytes 0 drop
+		ct state related,established counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type destination-unreachable counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type packet-too-big counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type time-exceeded counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type parameter-problem counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type echo-request counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type echo-reply counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type nd-router-solicit ip6 hoplimit 255 counter packets 15 bytes 720 accept
+		meta l4proto ipv6-icmp icmpv6 type nd-neighbor-advert ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type nd-neighbor-solicit ip6 hoplimit 255 counter packets 90 bytes 6480 accept
+		meta l4proto ipv6-icmp icmpv6 type nd-router-advert ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type  ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type  ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  counter packets 14 bytes 1008 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  counter packets 2 bytes 144 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  counter packets 3338 bytes 459168 accept
+		meta l4proto ipv6-icmp icmpv6 type  ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type  ip6 hoplimit 255 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  ip6 hoplimit 1 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  ip6 hoplimit 1 counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp ip6 saddr fe80::/10 icmpv6 type  ip6 hoplimit 1 counter packets 0 bytes 0 accept
+		counter packets 1099 bytes 133898 jump ufw6-user-output
+	}
+
+	chain ufw6-before-forward {
+		rt type 0 counter packets 0 bytes 0 drop
+		ct state related,established counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type destination-unreachable counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type packet-too-big counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type time-exceeded counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type parameter-problem counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type echo-request counter packets 0 bytes 0 accept
+		meta l4proto ipv6-icmp icmpv6 type echo-reply counter packets 0 bytes 0 accept
+		counter packets 0 bytes 0 jump ufw6-user-forward
+	}
+
+	chain ufw6-after-input {
+		meta l4proto udp udp dport 137 counter packets 0 bytes 0 jump ufw6-skip-to-policy-input
+		meta l4proto udp udp dport 138 counter packets 0 bytes 0 jump ufw6-skip-to-policy-input
+		meta l4proto tcp tcp dport 139 counter packets 0 bytes 0 jump ufw6-skip-to-policy-input
+		meta l4proto tcp tcp dport 445 counter packets 0 bytes 0 jump ufw6-skip-to-policy-input
+		meta l4proto udp udp dport 546 counter packets 0 bytes 0 jump ufw6-skip-to-policy-input
+		meta l4proto udp udp dport 547 counter packets 0 bytes 0 jump ufw6-skip-to-policy-input
+	}
+
+	chain ufw6-after-output {
+	}
+
+	chain ufw6-after-forward {
+	}
+
+	chain ufw6-after-logging-input {
+		limit rate 3/minute burst 10 packets counter packets 7 bytes 938 log prefix "[UFW BLOCK] "
+	}
+
+	chain ufw6-after-logging-output {
+		limit rate 3/minute burst 10 packets counter packets 532 bytes 52931 log prefix "[UFW ALLOW] "
+	}
+
+	chain ufw6-after-logging-forward {
+		limit rate 3/minute burst 10 packets counter packets 0 bytes 0 log prefix "[UFW BLOCK] "
+	}
+
+	chain ufw6-reject-input {
+	}
+
+	chain ufw6-reject-output {
+	}
+
+	chain ufw6-reject-forward {
+	}
+
+	chain ufw6-track-input {
+	}
+
+	chain ufw6-track-output {
+		meta l4proto tcp ct state new counter packets 0 bytes 0 accept
+		meta l4proto udp ct state new counter packets 653 bytes 91222 accept
+	}
+
+	chain ufw6-track-forward {
+	}
+
+	chain INPUT {
+		type filter hook input priority filter; policy drop;
+		counter packets 27581 bytes 8353837 jump ufw6-before-logging-input
+		counter packets 27581 bytes 8353837 jump ufw6-before-input
+		counter packets 7 bytes 938 jump ufw6-after-input
+		counter packets 7 bytes 938 jump ufw6-after-logging-input
+		counter packets 7 bytes 938 jump ufw6-reject-input
+		counter packets 7 bytes 938 jump ufw6-track-input
+	}
+
+	chain OUTPUT {
+		type filter hook output priority filter; policy accept;
+		counter packets 4786 bytes 626206 jump ufw6-before-logging-output
+		counter packets 4786 bytes 626206 jump ufw6-before-output
+		counter packets 1099 bytes 133898 jump ufw6-after-output
+		counter packets 1099 bytes 133898 jump ufw6-after-logging-output
+		counter packets 1099 bytes 133898 jump ufw6-reject-output
+		counter packets 1099 bytes 133898 jump ufw6-track-output
+	}
+
+	chain FORWARD {
+		type filter hook forward priority filter; policy drop;
+		counter packets 0 bytes 0 jump DOCKER-USER
+		counter packets 0 bytes 0 jump ufw6-before-logging-forward
+		counter packets 0 bytes 0 jump ufw6-before-forward
+		counter packets 0 bytes 0 jump ufw6-after-forward
+		counter packets 0 bytes 0 jump ufw6-after-logging-forward
+		counter packets 0 bytes 0 jump ufw6-reject-forward
+		counter packets 0 bytes 0 jump ufw6-track-forward
+	}
+
+	chain ufw6-logging-deny {
+		ct state invalid limit rate 3/minute burst 10 packets counter packets 0 bytes 0 log prefix "[UFW AUDIT INVALID] "
+		limit rate 3/minute burst 10 packets counter packets 0 bytes 0 log prefix "[UFW BLOCK] "
+	}
+
+	chain ufw6-logging-allow {
+		limit rate 3/minute burst 10 packets counter packets 0 bytes 0 log prefix "[UFW ALLOW] "
+	}
+
+	chain ufw6-skip-to-policy-input {
+		counter packets 0 bytes 0 drop
+	}
+
+	chain ufw6-skip-to-policy-output {
+		counter packets 0 bytes 0 accept
+	}
+
+	chain ufw6-skip-to-policy-forward {
+		counter packets 0 bytes 0 drop
+	}
+
+	chain ufw6-user-input {
+		meta l4proto tcp tcp dport 22  counter packets 0 bytes 0 accept
+		meta l4proto udp udp dport 1194 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 943 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 9222 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 9998 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 7878 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 9696 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 5055 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 8989 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 7575 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 6767 counter packets 0 bytes 0 accept
+		meta l4proto tcp tcp dport 6969 counter packets 0 bytes 0 accept
+	}
+
+	chain ufw6-user-output {
+	}
+
+	chain ufw6-user-forward {
+	}
+
+	chain ufw6-user-logging-input {
+	}
+
+	chain ufw6-user-logging-output {
+	}
+
+	chain ufw6-user-logging-forward {
+	}
+
+	chain ufw6-user-limit {
+		limit rate 3/minute counter packets 0 bytes 0 log prefix "[UFW LIMIT BLOCK] "
+		counter packets 0 bytes 0 reject
+	}
+
+	chain ufw6-user-limit-accept {
+		counter packets 0 bytes 0 accept
+	}
+
+	chain DOCKER {
+	}
+
+	chain DOCKER-ISOLATION-STAGE-1 {
+		iifname "docker0" oifname != "docker0" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-055af5d5d809" oifname != "br-055af5d5d809" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-c6dd52a344eb" oifname != "br-c6dd52a344eb" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-9fb33d91d884" oifname != "br-9fb33d91d884" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-8f0e90027077" oifname != "br-8f0e90027077" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-28972ffaeabe" oifname != "br-28972ffaeabe" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-fbda18736a51" oifname != "br-fbda18736a51" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-e7f65c135d11" oifname != "br-e7f65c135d11" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-8a9aa634319c" oifname != "br-8a9aa634319c" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-863fa69503d2" oifname != "br-863fa69503d2" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-8531fd6a39c8" oifname != "br-8531fd6a39c8" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		iifname "br-4ccdc67425b2" oifname != "br-4ccdc67425b2" counter packets 0 bytes 0 jump DOCKER-ISOLATION-STAGE-2
+		counter packets 0 bytes 0 return
+	}
+
+	chain DOCKER-ISOLATION-STAGE-2 {
+		oifname "docker0" counter packets 0 bytes 0 drop
+		oifname "br-055af5d5d809" counter packets 0 bytes 0 drop
+		oifname "br-c6dd52a344eb" counter packets 0 bytes 0 drop
+		oifname "br-9fb33d91d884" counter packets 0 bytes 0 drop
+		oifname "br-8f0e90027077" counter packets 0 bytes 0 drop
+		oifname "br-28972ffaeabe" counter packets 0 bytes 0 drop
+		oifname "br-fbda18736a51" counter packets 0 bytes 0 drop
+		oifname "br-e7f65c135d11" counter packets 0 bytes 0 drop
+		oifname "br-8a9aa634319c" counter packets 0 bytes 0 drop
+		oifname "br-863fa69503d2" counter packets 0 bytes 0 drop
+		oifname "br-8531fd6a39c8" counter packets 0 bytes 0 drop
+		oifname "br-4ccdc67425b2" counter packets 0 bytes 0 drop
+		counter packets 0 bytes 0 return
+	}
+
+	chain DOCKER-USER {
+		counter packets 0 bytes 0 return
+	}
+}
+table ip nat {
+	chain DOCKER {
+		iifname "docker0" counter packets 0 bytes 0 return
+		iifname "br-055af5d5d809" counter packets 0 bytes 0 return
+		iifname "br-c6dd52a344eb" counter packets 0 bytes 0 return
+		iifname "br-9fb33d91d884" counter packets 0 bytes 0 return
+		iifname "br-8f0e90027077" counter packets 0 bytes 0 return
+		iifname "br-28972ffaeabe" counter packets 0 bytes 0 return
+		iifname "br-fbda18736a51" counter packets 3 bytes 180 return
+		iifname "br-e7f65c135d11" counter packets 0 bytes 0 return
+		iifname "br-8a9aa634319c" counter packets 1260 bytes 75600 return
+		iifname "br-863fa69503d2" counter packets 0 bytes 0 return
+		iifname "br-8531fd6a39c8" counter packets 0 bytes 0 return
+		iifname "br-4ccdc67425b2" counter packets 0 bytes 0 return
+		iifname != "br-9fb33d91d884" meta l4proto tcp tcp dport 9222 counter packets 0 bytes 0 dnat to 172.19.0.2:9222
+		iifname != "br-8f0e90027077" meta l4proto tcp tcp dport 9998 counter packets 0 bytes 0 dnat to 172.20.0.2:9998
+		iifname != "br-fbda18736a51" meta l4proto tcp tcp dport 9696 counter packets 58 bytes 3016 dnat to 172.23.0.2:9696
+		iifname != "br-055af5d5d809" meta l4proto tcp tcp dport 943 counter packets 0 bytes 0 dnat to 172.21.0.2:943
+		iifname != "br-4ccdc67425b2" meta l4proto tcp tcp dport 7575 counter packets 0 bytes 0 dnat to 172.27.0.2:7575
+		iifname != "br-055af5d5d809" meta l4proto udp udp dport 1194 counter packets 0 bytes 0 dnat to 172.21.0.2:1194
+		iifname != "br-8a9aa634319c" meta l4proto tcp tcp dport 5055 counter packets 0 bytes 0 dnat to 172.24.0.2:5055
+		iifname != "br-863fa69503d2" meta l4proto tcp tcp dport 8989 counter packets 54 bytes 2808 dnat to 172.25.0.2:8989
+		iifname != "br-c6dd52a344eb" meta l4proto tcp tcp dport 6969 counter packets 61 bytes 3172 dnat to 172.28.0.2:6767
+		iifname != "br-e7f65c135d11" meta l4proto tcp tcp dport 7878 counter packets 78 bytes 4056 dnat to 172.22.0.2:7878
+	}
+
+	chain POSTROUTING {
+		type nat hook postrouting priority srcnat; policy accept;
+		oifname != "docker0" ip saddr 172.17.0.0/16 counter packets 6 bytes 404 masquerade 
+		oifname != "br-055af5d5d809" ip saddr 172.21.0.0/16 counter packets 2 bytes 120 masquerade 
+		oifname != "br-c6dd52a344eb" ip saddr 172.28.0.0/16 counter packets 11 bytes 708 masquerade 
+		oifname != "br-9fb33d91d884" ip saddr 172.19.0.0/16 counter packets 1 bytes 60 masquerade 
+		oifname != "br-8f0e90027077" ip saddr 172.20.0.0/16 counter packets 7 bytes 464 masquerade 
+		oifname != "br-28972ffaeabe" ip saddr 172.26.0.0/16 counter packets 0 bytes 0 masquerade 
+		oifname != "br-fbda18736a51" ip saddr 172.23.0.0/16 counter packets 18 bytes 1158 masquerade 
+		oifname != "br-e7f65c135d11" ip saddr 172.22.0.0/16 counter packets 2148 bytes 138874 masquerade 
+		oifname != "br-8a9aa634319c" ip saddr 172.24.0.0/16 counter packets 0 bytes 0 masquerade 
+		oifname != "br-863fa69503d2" ip saddr 172.25.0.0/16 counter packets 2177 bytes 140702 masquerade 
+		oifname != "br-8531fd6a39c8" ip saddr 172.18.0.0/16 counter packets 2 bytes 120 masquerade 
+		oifname != "br-4ccdc67425b2" ip saddr 172.27.0.0/16 counter packets 33 bytes 1992 masquerade 
+		meta l4proto tcp ip saddr 172.19.0.2 ip daddr 172.19.0.2 tcp dport 9222 counter packets 0 bytes 0 masquerade 
+		meta l4proto tcp ip saddr 172.20.0.2 ip daddr 172.20.0.2 tcp dport 9998 counter packets 0 bytes 0 masquerade 
+		meta l4proto tcp ip saddr 172.23.0.2 ip daddr 172.23.0.2 tcp dport 9696 counter packets 0 bytes 0 masquerade 
+		meta l4proto tcp ip saddr 172.21.0.2 ip daddr 172.21.0.2 tcp dport 943 counter packets 0 bytes 0 masquerade 
+		meta l4proto tcp ip saddr 172.27.0.2 ip daddr 172.27.0.2 tcp dport 7575 counter packets 0 bytes 0 masquerade 
+		meta l4proto udp ip saddr 172.21.0.2 ip daddr 172.21.0.2 udp dport 1194 counter packets 0 bytes 0 masquerade 
+		meta l4proto tcp ip saddr 172.24.0.2 ip daddr 172.24.0.2 tcp dport 5055 counter packets 0 bytes 0 masquerade 
+		meta l4proto tcp ip saddr 172.25.0.2 ip daddr 172.25.0.2 tcp dport 8989 counter packets 0 bytes 0 masquerade 
+		meta l4proto tcp ip saddr 172.28.0.2 ip daddr 172.28.0.2 tcp dport 6767 counter packets 0 bytes 0 masquerade 
+		meta l4proto tcp ip saddr 172.22.0.2 ip daddr 172.22.0.2 tcp dport 7878 counter packets 0 bytes 0 masquerade 
+	}
+
+	chain PREROUTING {
+		type nat hook prerouting priority dstnat; policy accept;
+		fib daddr type local counter packets 176108 bytes 52987025 jump DOCKER
+	}
+
+	chain OUTPUT {
+		type nat hook output priority -100; policy accept;
+		ip daddr != 127.0.0.0/8 fib daddr type local counter packets 7 bytes 420 jump DOCKER
+	}
+}
+table ip6 nat {
+	chain DOCKER {
+	}
+}
