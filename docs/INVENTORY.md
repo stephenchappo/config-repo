@@ -71,3 +71,4 @@ This file captures the host’s hardware, storage, and service inventory for dis
 ---
 
 **Note:** To populate these files, run `scripts/collect.sh` or execute the commands above manually in Act mode. The generated outputs belong under `system_snapshot/{timestamp}/` and can then be committed to version control.
+- qBittorrent (r0xyd0g) — docs/qbittorrent-r0xyd0g.md
