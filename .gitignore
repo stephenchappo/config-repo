@@ -6,7 +6,6 @@ git.env
 
 # Sensitive keys and certificates
 **/keys/**
-**/secrets/**
 **/*.key
 **/*.pem
 **/*.p12
