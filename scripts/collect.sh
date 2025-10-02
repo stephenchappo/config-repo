@@ -8,9 +8,29 @@ if [[ "$EUID" -ne 0 ]]; then
   exit 1
 fi
 
-BASEDIR="$(dirname "$0")/.."
-source "$BASEDIR/../git.env"
-source "$BASEDIR/../spotify.env"
+BASEDIR="$(cd "$(dirname "$0")/.." && pwd)"
+source "$BASEDIR/git.env"
+# Load runtime git credentials (files referenced in git.env) if present
+if [ -n "${GIT_USERNAME_FILE-}" ] && [ -f "${GIT_USERNAME_FILE}" ]; then
+  GITHUB_USERNAME="$(cat "${GIT_USERNAME_FILE}")"
+  export GITHUB_USERNAME
+fi
+if [ -n "${GIT_TOKEN_FILE-}" ] && [ -f "${GIT_TOKEN_FILE}" ]; then
+  GITHUB_TOKEN="$(cat "${GIT_TOKEN_FILE}")"
+  export GITHUB_TOKEN
+fi
+
+source "$BASEDIR/spotify.env"
+# Load runtime spotify credentials (files referenced in spotify.env) if present
+if [ -n "${SPOTIFY_CLIENT_ID_FILE-}" ] && [ -f "${SPOTIFY_CLIENT_ID_FILE}" ]; then
+  SPOTIFY_CLIENT_ID="$(cat "${SPOTIFY_CLIENT_ID_FILE}")"
+  export SPOTIFY_CLIENT_ID
+fi
+if [ -n "${SPOTIFY_CLIENT_SECRET_FILE-}" ] && [ -f "${SPOTIFY_CLIENT_SECRET_FILE}" ]; then
+  SPOTIFY_CLIENT_SECRET="$(cat "${SPOTIFY_CLIENT_SECRET_FILE}")"
+  export SPOTIFY_CLIENT_SECRET
+fi
+
 OUTDIR="$BASEDIR/system_snapshot/$(date +%Y%m%d_%H%M%S)"
 LOGDIR="$BASEDIR/logs"
 LOGFILE="$LOGDIR/collect.log"
@@ -46,7 +66,7 @@ run_capture "iptables-save > \"$OUTDIR/iptables-save.txt\"" "$OUTDIR/iptables-sa
 run_capture "nft list ruleset > \"$OUTDIR/nft-ruleset.txt\"" "$OUTDIR/nft-ruleset.txt"
 
 # Spotify environment and Python dependencies
-source "$BASEDIR/../spotify.env"
+source "$BASEDIR/spotify.env"
 export SNAPSHOT_OUTDIR="$OUTDIR"
 run_capture "apt-get update && apt-get install -y python3-pip" "/dev/null"
 run_capture "pip3 install spotipy pandas" "/dev/null"
@@ -57,13 +77,33 @@ run_capture "python3 \"$BASEDIR/musical tastes/scripts/musical_preferences.py\" 
 
 echo "[$(date)] Committing snapshot to git" | tee -a "$LOGFILE"
 pushd "$BASEDIR" > /dev/null
-if [[ -n "${GITHUB_TOKEN-}" ]]; then
-  git remote set-url origin "https://${GITHUB_TOKEN}@github.com/scon/config-repo.git"
+
+# Ensure git author identity exists; prefer runtime username if provided
+if ! git config user.email >/dev/null 2>&1; then
+  if [[ -n "${GITHUB_USERNAME-}" ]]; then
+    git config user.name "${GITHUB_USERNAME}"
+    git config user.email "${GITHUB_USERNAME}@users.noreply.github.com"
+  fi
 fi
+
+# Ensure remote points to the user's repository (no embedded credentials stored)
+if [[ -n "${GITHUB_USERNAME-}" ]]; then
+  git remote set-url origin "https://github.com/${GITHUB_USERNAME}/config-repo.git"
+fi
+
 if ! git commit -m "Automated snapshot $(date +%Y-%m-%d_%H:%M)" >>"$LOGFILE" 2>&1; then
   echo "[$(date)] INFO: nothing to commit" | tee -a "$LOGFILE"
 fi
-git push origin main >>"$LOGFILE" 2>&1 || echo "[$(date)] ERROR: git push failed" | tee -a "$LOGFILE"
+
+# Push: if token available, perform one-time authenticated push using embedded credentials,
+# otherwise perform a standard git push (will prompt if auth required).
+if [[ -n "${GITHUB_USERNAME-}" && -n "${GITHUB_TOKEN-}" ]]; then
+  git push "https://${GITHUB_USERNAME}:${GITHUB_TOKEN}@github.com/${GITHUB_USERNAME}/config-repo.git" main >>"$LOGFILE" 2>&1 \
+    || echo "[$(date)] ERROR: authenticated git push failed" | tee -a "$LOGFILE"
+else
+  git push origin main >>"$LOGFILE" 2>&1 || echo "[$(date)] ERROR: git push failed" | tee -a "$LOGFILE"
+fi
+
 popd > /dev/null
 
 echo "[$(date)] Snapshot complete: $OUTDIR" | tee -a "$LOGFILE"
