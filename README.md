@@ -99,8 +99,15 @@ Centralized storage of server configuration, Docker stacks, VS Code setups, and 
 │   │   └── .gitkeep
 │   ├── collect.sh
 │   ├── install_cron.sh
+│   ├── sops-decrypt-all.sh
+│   ├── sops-decrypt-runner.sh
 │   ├── update_docs.py
 │   └── update_docs.sh
+├── docs/secrets
+│   ├── git.enc.json (encrypted)
+│   ├── spotify.enc.json (encrypted)
+│   └── ...other encrypted secrets...
+├── system_snapshot/          ← timestamped snapshots (created by collect.sh)
 ├── .gitignore
 ├── .gitleaks.toml
 ├── .pre-commit-config.yaml
@@ -108,52 +115,86 @@ Centralized storage of server configuration, Docker stacks, VS Code setups, and 
 ```
 <!-- END:STRUCTURE -->
 
-```text
-config-repo/
-├── .gitignore
-├── README.md                 ← this file
-├── docs/
-│   ├── REBUILD.md            ← rebuild guide
-│   ├── INVENTORY.md          ← hardware & service inventory
-│   └── NETWORK.md            ← network & firewall summary
-├── scripts/
-│   └── collect.sh            ← system snapshot script
-├── system_snapshot/          ← timestamped snapshots (created by collect.sh)
-├── containers/
-│   └── docker/
-│       ├── compose/          ← docker-compose files per service
-│       ├── env-templates/    ← .env.example files
-│       ├── configs-templates/← sanitized service config templates
-│       ├── scripts/          ← helper scripts (e.g., manage-containers.sh)
-│       ├── notes/            ← operational notes
-│       ├── runtime-snapshots/← images/volumes/networks/containers lists
-│       ├── README.md         ← Docker stack overview
-│       └── USAGE_DOCKER.md   ← prompts & sync instructions
-├── editors/
-│   └── vscode/
-│       ├── extensions.txt    ← list of installed extensions
-│       └── mcp/
-│           └── cline_mcp_settings.json.template
-└── memory-bank/              ← existing local notes and tool docs
-```
-
 ## Quick Links
 
-- `scripts/collect.sh` Run to capture system state.
+- `scripts/collect.sh` Run to capture system state and (optionally) push to GitHub.
+- `scripts/sops-decrypt-runner.sh` Mounts tmpfs at `/run/config-repo-secrets` and runs `scripts/sops-decrypt-all.sh` as user `scon` to decrypt secrets at runtime.
+- `scripts/sops-decrypt-all.sh` Decrypts files in `docs/secrets/*.enc.*` into `/run/config-repo-secrets`, post-processes YAML/JSON/dotenv and writes small runtime files used by processes.
 - `docs/REBUILD.md` Guide to rebuild host from scratch.
 - `containers/docker/README.md` Overview of Docker service layouts.
 - `containers/docker/USAGE_DOCKER.md` Routine sync & prompts library.
 - `editors/vscode/extensions.txt` VS Code extensions to reinstall.
-- `editors/vscode/mcp/cline_mcp_settings.json.template` Sanitized MCP settings.
 
-## Next Steps
+## Secrets handling (added 2025-10-01)
 
-- [x] Sanitize service configs under `containers/docker/configs-templates/`.  
-- [x] Integrate CI (pre-commit & GitHub workflows).  
-- [x] Populate templates for Ansible, Terraform, Prometheus, etc.
-- [ ] Create a script that scans all of the contents of the config repo, updates all of the relevant documentation including this README file, add it to a cron that runs 3x per week at 2:30am on Monday, Wednesday and Friday and then uploads all changes to git.
-- [X] Use `scripts/collect.sh` and commit snapshots regularly.
-- [ ] After the cron jobs have run once, verify they work and that everything has populated as we expect, no errors and no empty files.
-- [ ] For any secrets: maintain templates only, encrypt with SOPS/age, or store outside this repo.
+This repository uses SOPS (with Age) to store encrypted secrets under `docs/secrets/`. Plaintext secrets are never stored in the repo. Changes made on 2025-10-01:
+
+- Added secret templates (examples only; do not commit real secrets):
+  - `docs/secrets/git.env.template` — template for Git credentials
+  - `docs/secrets/spotify.env.template` — template for Spotify credentials
+- Encrypted the templates using SOPS and stored the encrypted files (e.g., `git.enc.json`, `spotify.enc.json`).
+- Runtime decryption flow:
+  1. `scripts/sops-decrypt-runner.sh` ensures `/run/config-repo-secrets` tmpfs is mounted with mode 0700 and owned by `scon`.
+  2. It runs `scripts/sops-decrypt-all.sh` as user `scon` providing `SOPS_AGE_KEY_FILE` so sops can decrypt.
+  3. `sops-decrypt-all.sh` decrypts the files into `/run/config-repo-secrets` and post-processes them to generate small runtime files:
+     - `/run/config-repo-secrets/git_username`
+     - `/run/config-repo-secrets/git_token`
+     - `/run/config-repo-secrets/spotify_client_id`
+     - `/run/config-repo-secrets/spotify_client_secret`
+  4. Files under `/run/config-repo-secrets` are created with permissions 600 and directories 700; ownership set to `scon`.
+
+- Notes:
+  - The Age private key used by SOPS must be available to the `scon` user (recommended location: `/home/scon/.config/sops/age/age_key.txt`), protected with 600 permissions.
+  - The runner and decrypt scripts are idempotent and safe to re-run; they clean previous decrypted state and re-write files.
+
+## collect.sh changes (added 2025-10-01)
+
+`collect.sh` was updated to:
+- Resolve the repository base directory robustly.
+- Source `git.env` and `spotify.env` (these files reference runtime locations).
+- Automatically read runtime credentials (if present) from `/run/config-repo-secrets` and export:
+  - `GITHUB_USERNAME`, `GITHUB_TOKEN`
+  - `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`
+- Configure a local git user identity if missing (uses the runtime username fallback).
+- Perform a one-time authenticated push using the token when available (embedded-URL push), otherwise fall back to a standard `git push`.
+- Log all operations to `logs/collect.log` and place snapshots into `system_snapshot/<timestamp>/`.
+
+## What I did today (2025-10-01)
+
+- Implemented secure secrets templates and encrypted them with SOPS.
+- Added `scripts/sops-decrypt-all.sh` to decrypt repo secrets into a secured tmpfs and post-process them into runtime files.
+- Added `scripts/sops-decrypt-runner.sh` (systemd/runner friendly) to orchestrate mount and decryption as user `scon`.
+- Updated `scripts/collect.sh` to read runtime secret files and use them for authenticated git pushes.
+- Created runtime `git.env` and `spotify.env` files that point at `/run/config-repo-secrets/...` (these are safe, small, and non-secret).
+- Restored script permissions and fixed issues found during testing.
+- Verified runner + decryption flow and validated pushing commits to your GitHub account (performed authenticated push; resolved remote divergence with an authenticated fetch/rebase and push).
+- Committed and pushed the changes to the repo (branch `main`).
+
+## How to run
+
+1. Decrypt secrets into tmpfs (recommended runner):
+   sudo bash scripts/sops-decrypt-runner.sh
+
+2. Run the snapshot script (as root):
+   sudo bash scripts/collect.sh
+
+3. Verify logs:
+   tail -n 200 logs/collect.log
+
+4. Cleanup (optional): unmount tmpfs after you're done:
+   sudo umount /run/config-repo-secrets && sudo rmdir /run/config-repo-secrets
+
+## Outstanding / optional improvements
+
+- Add an automated cron/systemd timer to run the documentation update and snapshot workflow.
+- Harden runner to automatically remove runtime plaintext files after push (if desired).
+- Improve error handling in musical preferences scripts (they currently require LikedSongs.csv and pandas).
+- Add CI checks to ensure encrypted files are not accidentally committed in plaintext.
+
+## Next steps recommended
+
+- Confirm the runtime secrets remain in `/run/config-repo-secrets` across reboots or ensure the systemd runner is enabled.
+- Test the full flow from decryption -> snapshot -> push via the runner and collect script (done interactively today).
+- If you want, I can create the systemd unit and enable a timer/cron entry for you.
 
 > Keep this repository as your single source of truth for configuration and DR procedures.
