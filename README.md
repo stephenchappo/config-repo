@@ -1,3 +1,5 @@
+[20260323 - DEPRECATED] - Created with ChatGPT and migrated to Claude
+
 Configuration Documentation Policy (Canonical location: ~/config-repo)
 --------------------------------------------------------------------
 
